@@ -67,3 +67,63 @@ test('dose times', () => {
   assert.deepEqual(L.doseTimes(4), ['08:00', '12:45', '17:15', '22:00']);
   assert.deepEqual(L.doseTimes(1), ['08:00']);
 });
+
+test('quantity and days supply', () => {
+  assert.equal(L.qtyForDays({ perDose: 2, timesPerDay: 3, days: 7 }), 42);
+  assert.deepEqual(L.daysFromQty({ qty: 100, perDose: 2, timesPerDay: 3 }), { days: 16, leftover: 4 });
+  const p = L.packsNeeded(42, 28);
+  assert.equal(p.packs, 2); assert.equal(p.spare, 14); assert.equal(p.splitQty, 14);
+});
+
+test('liquid dose 250mg/5mL', () => {
+  const r = L.liquidDose({ doseMg: 125, strengthMg: 250, strengthMl: 5, timesPerDay: 3, days: 7, bottleMl: 100 });
+  assert.equal(r.ml, 2.5); assert.equal(r.totalMl, 52.5); assert.equal(r.bottles, 1);
+});
+
+test('weight dose with cap', () => {
+  assert.deepEqual(L.weightDose({ weightKg: 20, mgPerKg: 15, maxMg: 1000 }), { calc: 300, dose: 300, capped: false });
+  assert.equal(L.weightDose({ weightKg: 80, mgPerKg: 15, maxMg: 1000 }).dose, 1000);
+});
+
+test('Cockcroft-Gault and body weights', () => {
+  // 70y male 70kg SCr 100 → (70*70*1.23)/100 = 60.27
+  assert.equal(L.crcl({ age: 70, weightKg: 70, scr: 100, sex: 'M' }), 60.27);
+  assert.equal(L.crcl({ age: 70, weightKg: 70, scr: 100, sex: 'F' }), 50.96);
+  const w = L.bodyWeights({ weightKg: 100, heightCm: 175, sex: 'M' });
+  assert.equal(w.ibw, 70.46); assert.equal(w.bmi, 32.65);
+});
+
+test('prescription validity (CPE example: 1 Nov → 29 Nov)', () => {
+  const cd = L.rxValidity({ appropriateISO: '2026-11-01', type: 'cd234', checkISO: '2026-11-29' });
+  assert.equal(cd.lastDay, '29/11/2026'); assert.equal(cd.valid, true);
+  assert.equal(L.rxValidity({ appropriateISO: '2026-11-01', type: 'cd234', checkISO: '2026-11-30' }).valid, false);
+  assert.equal(L.rxValidity({ appropriateISO: '2026-11-05', type: 'cd234', checkISO: '2026-11-04' }).notYet, true);
+  assert.equal(L.rxValidity({ appropriateISO: '2026-08-31', type: 'standard' }).lastDay, '28/02/2027');
+});
+
+test('quantity in words', () => {
+  assert.equal(L.quantityInWords('56'), 'fifty-six');
+  assert.equal(L.quantityInWords('100'), 'one hundred');
+  assert.equal(L.quantityInWords('112'), 'one hundred and twelve');
+  assert.equal(L.quantityInWords('1050'), 'one thousand and fifty');
+  assert.equal(L.quantityInWords('2500'), 'two thousand five hundred');
+  assert.equal(L.quantityInWords('7.5'), 'seven point five');
+  assert.equal(L.quantityInWords('abc'), null);
+});
+
+test('discard dates and schedules', () => {
+  assert.equal(L.discardDate({ openedISO: '2026-11-01', amount: 28, unit: 'days' }).date, '29/11/2026');
+  assert.equal(L.discardDate({ openedISO: '2026-11-30', amount: 3, unit: 'months' }).date, '28/02/2027');
+  const s = L.changeSchedule({ startISO: '2026-11-23', mode: 'interval', everyDays: 3, count: 3 });
+  assert.deepEqual(s.map((x) => x.date), ['23/11/2026', '26/11/2026', '29/11/2026']);
+  const w = L.changeSchedule({ startISO: '2026-11-23', mode: 'weekdays', weekdays: [1, 4], count: 3 });
+  assert.deepEqual(w.map((x) => x.weekday), ['Monday', 'Thursday', 'Monday']);
+});
+
+test('unit conversions', () => {
+  assert.equal(L.convertUnit(0.5, 'mg', 'mcg'), 500);
+  assert.equal(L.convertUnit(1500, 'mL', 'L'), 1.5);
+  assert.equal(L.convertUnit(1, 'mg', 'mL'), null);
+  assert.equal(L.percentToMgMl(0.5), 5);
+  assert.equal(L.ratioToMgMl(1000), 1);
+});

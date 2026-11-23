@@ -141,6 +141,146 @@
     return out;
   }
 
-  const api = { numberToWords, predTablets, predTaperSteps, predChart, sulfaSchedule, sulfaDoseText, eyeDropSupply, doseTimes, fmtDate, isoDate, parseDate, addDays, fmtMg };
+  // ---------- Quantity / days supply ----------
+  function qtyForDays({ perDose, timesPerDay, days }) {
+    if (!(perDose > 0) || !(timesPerDay > 0) || !(days > 0)) return null;
+    return round2(perDose * timesPerDay * days);
+  }
+  function daysFromQty({ qty, perDose, timesPerDay }) {
+    if (!(qty > 0) || !(perDose > 0) || !(timesPerDay > 0)) return null;
+    const perDay = perDose * timesPerDay;
+    return { days: Math.floor(round2(qty / perDay)), leftover: round2(qty - Math.floor(round2(qty / perDay)) * perDay) };
+  }
+  function packsNeeded(qty, packSize) {
+    if (!(qty > 0) || !(packSize > 0)) return null;
+    const packs = Math.ceil(round2(qty / packSize));
+    return { packs, total: packs * packSize, spare: round2(packs * packSize - qty), wholePacksOnly: Math.floor(round2(qty / packSize)), splitQty: round2(qty % packSize) };
+  }
+
+  // ---------- Liquids ----------
+  // strength given as strengthMg in strengthMl (e.g. 250mg in 5mL)
+  function liquidDose({ doseMg, strengthMg, strengthMl, timesPerDay, days, bottleMl }) {
+    if (!(doseMg > 0) || !(strengthMg > 0) || !(strengthMl > 0)) return null;
+    const mgPerMl = strengthMg / strengthMl;
+    const ml = round2(doseMg / mgPerMl);
+    const out = { mgPerMl: round2(mgPerMl), ml };
+    if (timesPerDay > 0 && days > 0) {
+      out.totalMl = round2(ml * timesPerDay * days);
+      if (bottleMl > 0) out.bottles = Math.ceil(round2(out.totalMl / bottleMl));
+    }
+    return out;
+  }
+
+  // ---------- Weight-based dose ----------
+  function weightDose({ weightKg, mgPerKg, maxMg }) {
+    if (!(weightKg > 0) || !(mgPerKg > 0)) return null;
+    const calc = round2(weightKg * mgPerKg);
+    const capped = maxMg > 0 && calc > maxMg;
+    return { calc, dose: capped ? round2(maxMg) : calc, capped };
+  }
+
+  // ---------- Renal function (Cockcroft–Gault, SCr in micromol/L) ----------
+  function bodyWeights({ weightKg, heightCm, sex }) {
+    const out = {};
+    if (heightCm > 0) {
+      const inchesOver5ft = heightCm / 2.54 - 60;
+      out.ibw = round2((sex === 'F' ? 45.5 : 50) + 2.3 * inchesOver5ft);
+      if (weightKg > 0) {
+        out.bmi = round2(weightKg / Math.pow(heightCm / 100, 2));
+        out.adjbw = round2(out.ibw + 0.4 * (weightKg - out.ibw));
+      }
+    }
+    return out;
+  }
+  function crcl({ age, weightKg, scr, sex }) {
+    if (!(age > 0) || !(weightKg > 0) || !(scr > 0) || age >= 140) return null;
+    const f = sex === 'F' ? 1.04 : 1.23;
+    return round2(((140 - age) * weightKg * f) / scr);
+  }
+
+  // ---------- Prescription validity ----------
+  const addMonths = (date, n) => {
+    const d = new Date(date); const day = d.getDate();
+    d.setDate(1); d.setMonth(d.getMonth() + n);
+    const last = new Date(d.getFullYear(), d.getMonth() + 1, 0, 12).getDate();
+    d.setDate(Math.min(day, last)); return d;
+  };
+  // type: 'cd234' (Sch 2, 3, 4 CDs: 28 days after the appropriate date) or 'standard' (POM / Sch 5: 6 months)
+  function rxValidity({ appropriateISO, type, checkISO }) {
+    const start = parseDate(appropriateISO);
+    const last = type === 'cd234' ? addDays(start, 28) : addMonths(start, 6);
+    const out = { lastDay: fmtDate(last), lastISO: isoDate(last) };
+    if (checkISO) {
+      const check = parseDate(checkISO);
+      const dayMs = 86400000;
+      out.notYet = check < start;
+      out.valid = !out.notYet && check <= last;
+      out.daysLeft = Math.round((last - check) / dayMs);
+    }
+    return out;
+  }
+
+  // ---------- Quantity in words (for CD prescriptions) ----------
+  const ONES = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
+  const TENS = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+  function intToWords(n) {
+    if (!Number.isInteger(n) || n < 0 || n > 999999) return null;
+    if (n < 20) return ONES[n];
+    if (n < 100) return TENS[Math.floor(n / 10)] + (n % 10 ? '-' + ONES[n % 10] : '');
+    if (n < 1000) return ONES[Math.floor(n / 100)] + ' hundred' + (n % 100 ? ' and ' + intToWords(n % 100) : '');
+    const th = Math.floor(n / 1000), rest = n % 1000;
+    return intToWords(th) + ' thousand' + (rest ? (rest < 100 ? ' and ' : ' ') + intToWords(rest) : '');
+  }
+  function quantityInWords(x) {
+    const s = String(x).trim();
+    if (!/^\d+(\.\d+)?$/.test(s)) return null;
+    const [whole, frac] = s.split('.');
+    const w = intToWords(parseInt(whole, 10));
+    if (w == null) return null;
+    if (!frac || /^0+$/.test(frac)) return w;
+    return w + ' point ' + frac.split('').map((d) => ONES[+d]).join(' ');
+  }
+
+  // ---------- In-use / discard dates ----------
+  // Discard date = opened + period. A '28 days' item opened on the 1st is discarded on the 29th.
+  function discardDate({ openedISO, amount, unit }) {
+    if (!(amount > 0)) return null;
+    const d = parseDate(openedISO);
+    const out = unit === 'months' ? addMonths(d, amount) : addDays(d, unit === 'weeks' ? amount * 7 : amount);
+    return { date: fmtDate(out), iso: isoDate(out), weekday: out.toLocaleDateString('en-GB', { weekday: 'long' }) };
+  }
+
+  // ---------- Patch / dose change schedules ----------
+  const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  function changeSchedule({ startISO, mode, everyDays, weekdays, count = 10 }) {
+    const out = [];
+    let d = parseDate(startISO);
+    if (mode === 'interval') {
+      if (!(everyDays > 0)) return out;
+      for (let i = 0; i < count; i++) { out.push({ date: fmtDate(d), weekday: WEEKDAYS[d.getDay()] }); d = addDays(d, everyDays); }
+    } else {
+      const set = new Set((weekdays || []).map(Number));
+      if (!set.size) return out;
+      for (let i = 0; out.length < count && i < 400; i++) {
+        if (set.has(d.getDay())) out.push({ date: fmtDate(d), weekday: WEEKDAYS[d.getDay()] });
+        d = addDays(d, 1);
+      }
+    }
+    return out;
+  }
+
+  // ---------- Unit conversion ----------
+  const MASS = { g: 1, mg: 1e-3, mcg: 1e-6, ng: 1e-9, kg: 1e3 };
+  const VOL = { L: 1, mL: 1e-3 };
+  function convertUnit(value, from, to) {
+    const tbl = MASS[from] && MASS[to] ? MASS : VOL[from] && VOL[to] ? VOL : null;
+    if (!tbl || !Number.isFinite(value)) return null;
+    return Number((value * tbl[from] / tbl[to]).toPrecision(10));
+  }
+  // % w/v → mg/mL (1% w/v = 1g in 100mL = 10mg/mL); ratio 1 in N (g in mL) → mg/mL
+  const percentToMgMl = (pct) => round2(pct * 10);
+  const ratioToMgMl = (n) => (n > 0 ? Number((1000 / n).toPrecision(6)) : null);
+
+  const api = { qtyForDays, daysFromQty, packsNeeded, liquidDose, weightDose, bodyWeights, crcl, rxValidity, addMonths, quantityInWords, intToWords, discardDate, changeSchedule, WEEKDAYS, convertUnit, percentToMgMl, ratioToMgMl, numberToWords, predTablets, predTaperSteps, predChart, sulfaSchedule, sulfaDoseText, eyeDropSupply, doseTimes, fmtDate, isoDate, parseDate, addDays, fmtMg };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.RxLogic = api;
 })(typeof window !== 'undefined' ? window : globalThis);

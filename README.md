@@ -2,12 +2,16 @@
 
 Offline pharmacy dispensing helpers, as an Android app and a web app.
 
-| Tool | What it does |
+Open the app to a home screen of tools, grouped and filterable by role (pharmacist, technician, assistant). Star the ones you use most.
+
+| Group | Tools |
 |---|---|
-| **Labels** | Searchable list of label instructions. Edit, copy or print as an 80×40mm label or A4. Save your own custom labels, and export/import them. |
-| **Prednisolone** | Two-phase reducing chart (e.g. 40mg → 10mg by 5mg weekly, then 1mg weekly). Editable steps, tablet breakdown for 5mg / 2.5mg / 1mg, total tablets needed, printable patient chart. |
-| **Sulfasalazine** | 500mg titration chart up to 1–3g daily, printable. |
-| **Eye drops** | Bottle/unit supply calculator (allows for one or both eyes and the 28-day discard), plus a printable 7-day tick chart for several drops. |
+| **Dispensing** | Label generator · Quantity & days supply (with pack splitting) · Liquid dose (mg → mL, course volume, bottles) · Discard date after opening · Owing slip (patient + pharmacy copies) |
+| **Checks** | Prescription validity (Sch 2/3/4 CD 28 days, others 6 months) · Quantity in words for CD prescriptions |
+| **Clinical** | Weight-based mg/kg dose with max cap · Creatinine clearance (Cockcroft–Gault with IBW, AdjBW, BMI) · Units & strengths (mg/mcg/g, mL/L, % w/v, 1 in N) |
+| **Charts** | Prednisolone reducing chart · Sulfasalazine titration · Eye drop supply + drop chart · Patch & change-day schedule |
+
+No patient details are asked for or stored anywhere in the app.
 
 Everything runs on the device — no internet connection and no data leaves the phone.
 

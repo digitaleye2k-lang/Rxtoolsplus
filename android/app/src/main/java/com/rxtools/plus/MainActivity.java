@@ -88,6 +88,14 @@ public class MainActivity extends Activity {
         else webView.loadUrl(APP_URL);
     }
 
+    /** Back returns from a tool to the home screen; on the home screen it closes the app. */
+    @Override
+    @SuppressWarnings("deprecation")
+    public void onBackPressed() {
+        if (webView != null && webView.canGoBack()) webView.goBack();
+        else super.onBackPressed();
+    }
+
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);

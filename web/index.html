@@ -12,22 +12,28 @@
 </head>
 <body>
   <header class="topbar no-print">
-    <div class="brand"><span class="logo">Rx</span><div><h1>Rx Tools Max+</h1><small>Pharmacy dispensing helpers</small></div></div>
+    <button id="backBtn" class="icon-btn" aria-label="Back to all tools" hidden>←</button>
+    <div class="brand" id="brand"><span class="logo">Rx</span><div><h1 id="pageTitle">Rx Tools Max+</h1><small id="pageSub">Pharmacy dispensing helpers</small></div></div>
+    <button id="favBtn" class="icon-btn" aria-label="Add to favourites" title="Favourite" hidden>☆</button>
     <button id="settingsBtn" class="icon-btn" aria-label="Settings" title="Settings">⚙</button>
   </header>
 
-  <nav class="tabs no-print" role="tablist">
-    <button role="tab" data-tab="labels" class="active"><span>🏷</span>Labels</button>
-    <button role="tab" data-tab="pred"><span>📉</span>Prednisolone</button>
-    <button role="tab" data-tab="sulfa"><span>📈</span>Sulfasalazine</button>
-    <button role="tab" data-tab="eye"><span>👁</span>Eye drops</button>
-  </nav>
-
   <main class="no-print">
+    <!-- HOME -->
+    <section id="tool-home" class="panel active">
+      <input id="toolSearch" type="search" placeholder="Search tools…" autocomplete="off" class="search">
+      <div class="chips" role="radiogroup" aria-label="Show tools for">
+        <button data-role="all" class="active">All</button>
+        <button data-role="P">Pharmacist</button>
+        <button data-role="T">Technician</button>
+        <button data-role="A">Assistant</button>
+      </div>
+      <div id="toolGrid"></div>
+    </section>
+
     <!-- LABELS -->
-    <section id="tab-labels" class="panel active">
+    <section id="tool-labels" class="panel">
       <div class="card">
-        <h2>Label generator</h2>
         <input id="labelSearch" type="search" placeholder="Search medicines…" autocomplete="off">
         <div id="labelList" class="list"></div>
       </div>
@@ -36,7 +42,6 @@
         <label>Medicine<input id="lblName"></label>
         <label>Instruction<textarea id="lblText" rows="6"></textarea></label>
         <div class="grid2">
-          <label>Patient name<input id="lblPatient"></label>
           <label>Quantity<input id="lblQty" placeholder="e.g. 28 tablets"></label>
         </div>
         <div class="grid2">
@@ -52,17 +57,198 @@
           <button id="lblDelete" class="btn danger" hidden>Delete custom</button>
         </div>
       </div>
+      <div class="card"><button id="lblNew" class="btn ghost full">+ New custom label</button></div>
+    </section>
+
+    <!-- QUANTITY / DAYS -->
+    <section id="tool-qty" class="panel">
       <div class="card">
-        <button id="lblNew" class="btn ghost full">+ New custom label</button>
+        <div class="seg" id="qMode">
+          <button data-m="qty" class="active">Quantity for days</button>
+          <button data-m="days">Days from quantity</button>
+        </div>
+        <div class="grid3">
+          <label>Amount per dose<input id="qPer" type="number" min="0" step="0.5" value="1" inputmode="decimal"></label>
+          <label>Doses a day<input id="qTimes" type="number" min="0" step="0.5" value="1" inputmode="decimal"></label>
+          <label id="qDaysWrap">Days<input id="qDays" type="number" min="1" value="28" inputmode="numeric"></label>
+          <label id="qQtyWrap" hidden>Quantity<input id="qQty" type="number" min="0" inputmode="decimal"></label>
+        </div>
+        <label>Pack size (optional)<input id="qPack" type="number" min="0" placeholder="e.g. 28" inputmode="numeric"></label>
+        <p class="hint">Works for tablets, capsules, mL, sachets, puffs — any unit, as long as all fields use the same one.</p>
+        <div id="qRes" class="result" hidden></div>
+      </div>
+    </section>
+
+    <!-- LIQUID -->
+    <section id="tool-liquid" class="panel">
+      <div class="card">
+        <label>Dose (mg)<input id="liDose" type="number" min="0" step="any" inputmode="decimal"></label>
+        <div class="grid2">
+          <label>Strength (mg)<input id="liMg" type="number" min="0" step="any" placeholder="250" inputmode="decimal"></label>
+          <label>per (mL)<input id="liMl" type="number" min="0" step="any" placeholder="5" inputmode="decimal"></label>
+        </div>
+        <fieldset>
+          <legend>Course (optional)</legend>
+          <div class="grid3">
+            <label>Doses a day<input id="liTimes" type="number" min="0" step="0.5" inputmode="decimal"></label>
+            <label>Days<input id="liDays" type="number" min="0" inputmode="numeric"></label>
+            <label>Bottle (mL)<input id="liBottle" type="number" min="0" placeholder="100" inputmode="decimal"></label>
+          </div>
+        </fieldset>
+        <div id="liRes" class="result" hidden></div>
+      </div>
+    </section>
+
+    <!-- WEIGHT DOSE -->
+    <section id="tool-weight" class="panel">
+      <div class="card">
+        <div class="grid2">
+          <label>Weight (kg)<input id="wKg" type="number" min="0" step="any" inputmode="decimal"></label>
+          <label>Dose (mg/kg)<input id="wMgKg" type="number" min="0" step="any" inputmode="decimal"></label>
+        </div>
+        <div class="grid2">
+          <label>Maximum single dose (mg, optional)<input id="wMax" type="number" min="0" step="any" inputmode="decimal"></label>
+          <label>Liquid strength mg per 5mL (optional)<input id="wStr" type="number" min="0" step="any" inputmode="decimal"></label>
+        </div>
+        <p class="hint">Enter the mg/kg and maximum from the BNF / BNFc or the prescriber — the app has no built-in doses.</p>
+        <div id="wRes" class="result" hidden></div>
+      </div>
+    </section>
+
+    <!-- RENAL -->
+    <section id="tool-renal" class="panel">
+      <div class="card">
+        <div class="seg" id="rSex"><button data-s="M" class="active">Male</button><button data-s="F">Female</button></div>
+        <div class="grid2">
+          <label>Age (years)<input id="rAge" type="number" min="18" inputmode="numeric"></label>
+          <label>Serum creatinine (µmol/L)<input id="rScr" type="number" min="1" inputmode="decimal"></label>
+        </div>
+        <div class="grid2">
+          <label>Actual weight (kg)<input id="rKg" type="number" min="0" step="any" inputmode="decimal"></label>
+          <label>Height (cm, optional)<input id="rCm" type="number" min="0" inputmode="decimal"></label>
+        </div>
+        <div id="rRes" class="result" hidden></div>
+        <p class="hint">Cockcroft–Gault for adults: CrCl = (140 − age) × weight × 1.23 (male) or 1.04 (female) ÷ SCr. Which weight to use depends on the drug — check the BNF or local guidance. Not for children, pregnancy, unstable renal function or extremes of muscle mass.</p>
+      </div>
+    </section>
+
+    <!-- UNITS -->
+    <section id="tool-convert" class="panel">
+      <div class="card">
+        <h2>Units</h2>
+        <div class="grid3">
+          <label>Value<input id="cVal" type="number" step="any" value="1" inputmode="decimal"></label>
+          <label>From<select id="cFrom"><option>kg</option><option>g</option><option selected>mg</option><option>mcg</option><option>ng</option><option>L</option><option>mL</option></select></label>
+          <label>To<select id="cTo"><option>kg</option><option>g</option><option>mg</option><option selected>mcg</option><option>ng</option><option>L</option><option>mL</option></select></label>
+        </div>
+        <div id="cRes" class="result"></div>
+      </div>
+      <div class="card">
+        <h2>Strengths</h2>
+        <div class="grid2">
+          <label>Percentage (% w/v)<input id="cPct" type="number" min="0" step="any" placeholder="e.g. 0.5" inputmode="decimal"></label>
+          <label>Ratio (1 in …)<input id="cRatio" type="number" min="0" step="any" placeholder="e.g. 1000" inputmode="decimal"></label>
+        </div>
+        <div id="cStrRes" class="result" hidden></div>
+        <p class="hint">1% w/v = 1g in 100mL = 10mg/mL. 1 in 1,000 = 1g in 1,000mL = 1mg/mL.</p>
+      </div>
+    </section>
+
+    <!-- QUANTITY IN WORDS -->
+    <section id="tool-words" class="panel">
+      <div class="card">
+        <label>Quantity in figures<input id="wdNum" type="text" inputmode="decimal" placeholder="e.g. 56"></label>
+        <label>Unit (optional)<input id="wdUnit" placeholder="e.g. tablets, mL, patches"></label>
+        <div id="wdRes" class="result" hidden></div>
+        <p class="hint">Schedule 2 and 3 CD prescriptions need the total quantity in both words and figures, e.g. “56 (fifty-six) tablets”.</p>
+      </div>
+    </section>
+
+    <!-- RX VALIDITY -->
+    <section id="tool-validity" class="panel">
+      <div class="card">
+        <label>Prescription type
+          <select id="vType">
+            <option value="cd234">Schedule 2, 3 or 4 CD — 28 days</option>
+            <option value="standard">POM, Schedule 5 CD — 6 months</option>
+          </select>
+        </label>
+        <div class="grid2">
+          <label>Appropriate date<input id="vDate" type="date"></label>
+          <label>Supply date<input id="vCheck" type="date"></label>
+        </div>
+        <p class="hint">Appropriate date = date signed, or a later start date written by the prescriber, whichever is later.</p>
+        <div id="vRes" class="result" hidden></div>
+        <p class="hint">Any owing balance of a Schedule 2, 3 or 4 CD must also be supplied within the 28 days. For FP10MDA instalments, only the first instalment has to be within 28 days. Repeat dispensing and private prescriptions can have other rules — check MEP.</p>
+      </div>
+    </section>
+
+    <!-- DISCARD DATE -->
+    <section id="tool-discard" class="panel">
+      <div class="card">
+        <label>Date opened / made up<input id="dOpen" type="date"></label>
+        <div class="grid2">
+          <label>Use within<input id="dAmt" type="number" min="1" value="28" inputmode="numeric"></label>
+          <label>Unit<select id="dUnit"><option value="days">Days</option><option value="weeks">Weeks</option><option value="months">Months</option></select></label>
+        </div>
+        <div class="chips" id="dPresets">
+          <button data-a="7" data-u="days">7 days</button><button data-a="14" data-u="days">14 days</button>
+          <button data-a="28" data-u="days">28 days</button><button data-a="3" data-u="months">3 months</button>
+          <button data-a="6" data-u="months">6 months</button>
+        </div>
+        <div id="dRes" class="result" hidden></div>
+        <p class="hint">The in-use period comes from the product’s SPC or leaflet, e.g. reconstituted antibiotics or eye drops.</p>
+      </div>
+    </section>
+
+    <!-- CHANGE SCHEDULE -->
+    <section id="tool-schedule" class="panel">
+      <div class="card">
+        <label>Medicine (optional)<input id="schName" placeholder="e.g. Evorel 50 patch"></label>
+        <label>First dose / change<input id="schStart" type="date"></label>
+        <div class="seg" id="schMode"><button data-m="interval" class="active">Every N days</button><button data-m="weekdays">Set weekdays</button></div>
+        <div id="schInterval">
+          <div class="chips" id="schPresets">
+            <button data-d="3">Every 3 days (72h)</button><button data-d="4">Every 4 days (96h)</button>
+            <button data-d="7">Weekly</button><button data-d="14">Fortnightly</button><button data-d="28">Every 28 days</button>
+          </div>
+          <label>Every (days)<input id="schEvery" type="number" min="1" value="3" inputmode="numeric"></label>
+        </div>
+        <div id="schWeekdays" hidden>
+          <div class="chips" id="schDays"></div>
+          <p class="hint">E.g. a twice-weekly patch: Monday and Thursday.</p>
+        </div>
+        <label>Number of dates<input id="schCount" type="number" min="1" max="60" value="10" inputmode="numeric"></label>
+        <div id="schRes" hidden></div>
+      </div>
+    </section>
+
+    <!-- OWING SLIP -->
+    <section id="tool-owing" class="panel">
+      <div class="card">
+        <div class="grid2">
+          <label>Date<input id="owDate" type="date"></label>
+        </div>
+        <label>Item<input id="owItem" placeholder="e.g. Amlodipine 5mg tablets"></label>
+        <div class="grid3">
+          <label>Prescribed<input id="owRx" type="number" min="0" inputmode="numeric"></label>
+          <label>Supplied<input id="owGiven" type="number" min="0" inputmode="numeric"></label>
+          <label>Owed<input id="owOwed" type="number" min="0" inputmode="numeric" readonly></label>
+        </div>
+        <div class="grid2">
+          <label>Expected<input id="owWhen" placeholder="e.g. Tomorrow after 2pm"></label>
+          <label>Staff initials<input id="owStaff" maxlength="6"></label>
+        </div>
+        <label class="check"><input type="checkbox" id="owCd"> Schedule 2, 3 or 4 CD</label>
+        <div id="owCdNote" class="warn" hidden></div>
+        <div class="actions"><button id="owPrint" class="btn primary">Print 2 copies (patient + pharmacy)</button></div>
       </div>
     </section>
 
     <!-- PREDNISOLONE -->
-    <section id="tab-pred" class="panel">
+    <section id="tool-pred" class="panel">
       <div class="card">
-        <h2>Prednisolone reducing chart</h2>
         <div class="grid2">
-          <label>Patient name<input id="pPatient"></label>
           <label>Start date<input id="pStart" type="date"></label>
         </div>
         <div class="grid2">
@@ -101,17 +287,13 @@
     </section>
 
     <!-- SULFASALAZINE -->
-    <section id="tab-sulfa" class="panel">
+    <section id="tool-sulfa" class="panel">
       <div class="card">
-        <h2>Sulfasalazine titration chart</h2>
         <div class="grid2">
-          <label>Patient name<input id="sPatient"></label>
           <label>Start date<input id="sStart" type="date"></label>
         </div>
         <div class="grid3">
-          <label>Tablet strength
-            <select id="sTab"><option value="500">500mg</option></select>
-          </label>
+          <label>Tablet strength<select id="sTab"><option value="500">500mg</option></select></label>
           <label>Target daily dose
             <select id="sTarget">
               <option value="1000">1g</option><option value="1500">1.5g</option>
@@ -127,9 +309,9 @@
     </section>
 
     <!-- EYE DROPS -->
-    <section id="tab-eye" class="panel">
+    <section id="tool-eye" class="panel">
       <div class="card">
-        <h2>Eye drop supply</h2>
+        <h2>Supply</h2>
         <div class="grid2">
           <label>Frequency
             <select id="eFreq">
@@ -146,7 +328,7 @@
           <label>Duration<input id="eDur" type="number" min="1" placeholder="e.g. 28" inputmode="numeric"></label>
           <label>Unit<select id="eUnit"><option value="days">Days</option><option value="weeks">Weeks</option><option value="months">Months (30 days)</option></select></label>
         </div>
-        <div class="seg" role="radiogroup">
+        <div class="seg" id="eDose">
           <button data-dose="multi" class="active">Multi-dose bottle</button>
           <button data-dose="single">Single-dose units</button>
         </div>
@@ -158,10 +340,8 @@
         <div id="eErr" class="error" hidden></div>
         <div id="eRes" class="result" hidden></div>
       </div>
-
       <div class="card">
-        <h2>Eye drop chart</h2>
-        <label>Patient name<input id="ecPatient"></label>
+        <h2>Drop chart</h2>
         <div id="ecRows"></div>
         <div class="actions">
           <button id="ecAdd" class="btn ghost">+ Add drop</button>
@@ -171,7 +351,7 @@
       </div>
     </section>
 
-    <p class="disclaimer">For use by pharmacy professionals. Always check every output against the prescription before dispensing.</p>
+    <p class="disclaimer">For use by pharmacy professionals. Always check every output against the prescription and current references (BNF, MEP, SPC) before dispensing.</p>
   </main>
 
   <dialog id="settingsDlg" class="no-print">
