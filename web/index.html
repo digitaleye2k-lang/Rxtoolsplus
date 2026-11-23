@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#3730a3">
+  <title>Rx Tools Max+</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="topbar no-print">
+    <div class="brand"><span class="logo">Rx</span><div><h1>Rx Tools Max+</h1><small>Pharmacy dispensing helpers</small></div></div>
+    <button id="settingsBtn" class="icon-btn" aria-label="Settings" title="Settings">⚙</button>
+  </header>
+
+  <nav class="tabs no-print" role="tablist">
+    <button role="tab" data-tab="labels" class="active"><span>🏷</span>Labels</button>
+    <button role="tab" data-tab="pred"><span>📉</span>Prednisolone</button>
+    <button role="tab" data-tab="sulfa"><span>📈</span>Sulfasalazine</button>
+    <button role="tab" data-tab="eye"><span>👁</span>Eye drops</button>
+  </nav>
+
+  <main class="no-print">
+    <!-- LABELS -->
+    <section id="tab-labels" class="panel active">
+      <div class="card">
+        <h2>Label generator</h2>
+        <input id="labelSearch" type="search" placeholder="Search medicines…" autocomplete="off">
+        <div id="labelList" class="list"></div>
+      </div>
+      <div class="card" id="labelEditor" hidden>
+        <div class="row-between"><h2 id="labelTitle">Label</h2><button id="labelClose" class="icon-btn" aria-label="Close">✕</button></div>
+        <label>Medicine<input id="lblName"></label>
+        <label>Instruction<textarea id="lblText" rows="6"></textarea></label>
+        <div class="grid2">
+          <label>Patient name<input id="lblPatient"></label>
+          <label>Quantity<input id="lblQty" placeholder="e.g. 28 tablets"></label>
+        </div>
+        <div class="grid2">
+          <label>Date<input id="lblDate" type="date"></label>
+          <label>Label size
+            <select id="lblSize"><option value="label">Label (80 × 40mm)</option><option value="a4">A4 sheet</option></select>
+          </label>
+        </div>
+        <div class="actions">
+          <button id="lblCopy" class="btn">Copy text</button>
+          <button id="lblPrint" class="btn primary">Print label</button>
+          <button id="lblSave" class="btn ghost">Save as custom</button>
+          <button id="lblDelete" class="btn danger" hidden>Delete custom</button>
+        </div>
+      </div>
+      <div class="card">
+        <button id="lblNew" class="btn ghost full">+ New custom label</button>
+      </div>
+    </section>
+
+    <!-- PREDNISOLONE -->
+    <section id="tab-pred" class="panel">
+      <div class="card">
+        <h2>Prednisolone reducing chart</h2>
+        <div class="grid2">
+          <label>Patient name<input id="pPatient"></label>
+          <label>Start date<input id="pStart" type="date"></label>
+        </div>
+        <div class="grid2">
+          <label>Starting dose (mg)<input id="pDose" type="number" min="0" step="0.5" value="40" inputmode="decimal"></label>
+          <label>Tablets available
+            <select id="pSet">
+              <option value="half5">5mg (can halve) + 1mg</option>
+              <option value="tab25">5mg + 2.5mg + 1mg</option>
+              <option value="no-half">5mg + 1mg (no halving)</option>
+            </select>
+          </label>
+        </div>
+        <fieldset>
+          <legend>Reduction plan</legend>
+          <div class="grid3">
+            <label>Reduce by (mg)<input id="pStepA" type="number" min="0" step="0.5" value="5" inputmode="decimal"></label>
+            <label>Every (days)<input id="pDaysA" type="number" min="1" value="7" inputmode="numeric"></label>
+            <label>Down to (mg)<input id="pThresh" type="number" min="0" step="0.5" value="10" inputmode="decimal"></label>
+          </div>
+          <p class="hint">Then, below that dose:</p>
+          <div class="grid3">
+            <label>Reduce by (mg)<input id="pStepB" type="number" min="0" step="0.5" value="1" inputmode="decimal"></label>
+            <label>Every (days)<input id="pDaysB" type="number" min="1" value="7" inputmode="numeric"></label>
+            <span></span>
+          </div>
+          <p class="hint">Set “Down to” to 0 for a single-rate taper.</p>
+        </fieldset>
+        <div class="actions"><button id="pGen" class="btn primary">Generate steps</button></div>
+      </div>
+      <div class="card" id="pStepsCard" hidden>
+        <div class="row-between"><h2>Steps</h2><button id="pAddStep" class="btn small ghost">+ Add step</button></div>
+        <p class="hint">Edit any dose or duration — the chart updates as you type.</p>
+        <div id="pSteps"></div>
+      </div>
+      <div class="card" id="pOut" hidden></div>
+    </section>
+
+    <!-- SULFASALAZINE -->
+    <section id="tab-sulfa" class="panel">
+      <div class="card">
+        <h2>Sulfasalazine titration chart</h2>
+        <div class="grid2">
+          <label>Patient name<input id="sPatient"></label>
+          <label>Start date<input id="sStart" type="date"></label>
+        </div>
+        <div class="grid3">
+          <label>Tablet strength
+            <select id="sTab"><option value="500">500mg</option></select>
+          </label>
+          <label>Target daily dose
+            <select id="sTarget">
+              <option value="1000">1g</option><option value="1500">1.5g</option>
+              <option value="2000" selected>2g</option><option value="2500">2.5g</option><option value="3000">3g</option>
+            </select>
+          </label>
+          <label>Increase every (days)<input id="sInterval" type="number" min="1" value="7" inputmode="numeric"></label>
+        </div>
+        <p class="hint">Adds one tablet each interval; the extra tablet goes in the evening. Check against the prescription.</p>
+        <div class="actions"><button id="sGen" class="btn primary">Generate chart</button></div>
+      </div>
+      <div class="card" id="sOut" hidden></div>
+    </section>
+
+    <!-- EYE DROPS -->
+    <section id="tab-eye" class="panel">
+      <div class="card">
+        <h2>Eye drop supply</h2>
+        <div class="grid2">
+          <label>Frequency
+            <select id="eFreq">
+              <option value="1">ONCE a day</option><option value="2">TWICE a day</option>
+              <option value="3">THREE times a day</option><option value="4">FOUR times a day</option>
+              <option value="5">FIVE times a day</option><option value="6">SIX times a day</option>
+              <option value="8">Every 2 hours while awake (≈8)</option>
+              <option value="16">Every hour while awake (≈16)</option>
+            </select>
+          </label>
+          <label>Eyes<select id="eEyes"><option value="1">One eye</option><option value="2">Both eyes</option></select></label>
+        </div>
+        <div class="grid2">
+          <label>Duration<input id="eDur" type="number" min="1" placeholder="e.g. 28" inputmode="numeric"></label>
+          <label>Unit<select id="eUnit"><option value="days">Days</option><option value="weeks">Weeks</option><option value="months">Months (30 days)</option></select></label>
+        </div>
+        <div class="seg" role="radiogroup">
+          <button data-dose="multi" class="active">Multi-dose bottle</button>
+          <button data-dose="single">Single-dose units</button>
+        </div>
+        <div class="grid2" id="eMultiOpts">
+          <label>Drops per bottle<input id="eDpb" type="number" min="1" value="100" inputmode="numeric"></label>
+          <label>Discard after opening (days)<input id="eExp" type="number" min="0" value="28" inputmode="numeric"></label>
+        </div>
+        <div class="actions"><button id="eCalc" class="btn primary">Calculate</button></div>
+        <div id="eErr" class="error" hidden></div>
+        <div id="eRes" class="result" hidden></div>
+      </div>
+
+      <div class="card">
+        <h2>Eye drop chart</h2>
+        <label>Patient name<input id="ecPatient"></label>
+        <div id="ecRows"></div>
+        <div class="actions">
+          <button id="ecAdd" class="btn ghost">+ Add drop</button>
+          <button id="ecPrint" class="btn primary">Print chart</button>
+        </div>
+        <p class="hint">Times are spread between 08:00 and 22:00. Leave 5 minutes between different drops.</p>
+      </div>
+    </section>
+
+    <p class="disclaimer">For use by pharmacy professionals. Always check every output against the prescription before dispensing.</p>
+  </main>
+
+  <dialog id="settingsDlg" class="no-print">
+    <form method="dialog">
+      <h2>Settings</h2>
+      <p class="hint">Printed at the bottom of labels and charts. Stored on this device only.</p>
+      <label>Pharmacy name<input id="setPharmacy"></label>
+      <label>Pharmacy address / phone<input id="setAddress"></label>
+      <div class="actions">
+        <button id="exportBtn" type="button" class="btn ghost">Export custom labels</button>
+        <label class="btn ghost file-btn">Import<input id="importFile" type="file" accept="application/json" hidden></label>
+      </div>
+      <div class="actions"><button class="btn primary" value="ok">Done</button></div>
+      <p class="hint" id="versionText"></p>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast no-print" hidden></div>
+  <div id="printArea" class="print-area"></div>
+
+  <script src="js/logic.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
