@@ -2,14 +2,15 @@
 
 Offline pharmacy dispensing helpers, as an Android app and a web app.
 
-Open the app to a home screen of tools, grouped and filterable by role (pharmacist, technician, assistant). Star the ones you use most.
+Open the app to a home screen of tools, grouped and filterable by role (pharmacist, technician, assistant, trainee). Star the ones you use most.
 
 | Group | Tools |
 |---|---|
 | **Dispensing** | Label generator · Quantity & days supply (with pack splitting) · Liquid dose (mg → mL, course volume, bottles) · Discard date after opening · Owing slip (patient + pharmacy copies) |
-| **Checks** | Prescription validity (Sch 2/3/4 CD 28 days, others 6 months) · Quantity in words for CD prescriptions |
+| **Checking** | Checklists (final accuracy check, POM and CD 2 & 3 legal requirements) · Look-alike sound-alike drugs · Short-dated stock check · Directions translator (“1 tds pc” → label wording) · Near-miss log with summary and CSV export · Prescription validity · Quantity in words |
 | **Clinical** | Weight-based mg/kg dose with max cap · Creatinine clearance (Cockcroft–Gault with IBW, AdjBW, BMI) · Units & strengths (mg/mcg/g, mL/L, % w/v, 1 in N) |
 | **Charts** | Prednisolone reducing chart · Sulfasalazine titration · Eye drop supply + drop chart · Patch & change-day schedule |
+| **Study** | Calculations practice (10 topics, unlimited generated questions with worked answers, score and streak) · Revision flashcards (law, abbreviations, formulae, checking) |
 
 No patient details are asked for or stored anywhere in the app.
 

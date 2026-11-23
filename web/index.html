@@ -27,6 +27,7 @@
         <button data-role="P">Pharmacist</button>
         <button data-role="T">Technician</button>
         <button data-role="A">Assistant</button>
+        <button data-role="S">Trainee</button>
       </div>
       <div id="toolGrid"></div>
     </section>
@@ -242,6 +243,108 @@
         <label class="check"><input type="checkbox" id="owCd"> Schedule 2, 3 or 4 CD</label>
         <div id="owCdNote" class="warn" hidden></div>
         <div class="actions"><button id="owPrint" class="btn primary">Print 2 copies (patient + pharmacy)</button></div>
+      </div>
+    </section>
+
+    <!-- CHECKLISTS -->
+    <section id="tool-checklist" class="panel">
+      <div class="card">
+        <div class="seg seg3" id="clMode"><button data-m="accuracy" class="active">Accuracy check</button><button data-m="pom">POM Rx</button><button data-m="cd23">CD 2 &amp; 3</button></div>
+        <div id="clProgress" class="progress"><div></div></div>
+        <div id="clItems" class="checklist"></div>
+        <div class="actions"><button id="clReset" class="btn ghost">Reset for next item</button></div>
+        <p class="hint">Nothing is saved. Tap each point as you check it. Check against MEP and your SOPs.</p>
+      </div>
+    </section>
+
+    <!-- LASA -->
+    <section id="tool-lasa" class="panel">
+      <div class="card">
+        <input id="lasaSearch" type="search" placeholder="Search a drug…" autocomplete="off">
+        <div id="lasaList" class="lasa"></div>
+        <p class="hint">Commonly reported pairs — not a complete list. Follow your pharmacy’s own LASA list and shelf separation.</p>
+      </div>
+    </section>
+
+    <!-- SHORT DATED -->
+    <section id="tool-shortdated" class="panel">
+      <div class="card">
+        <div class="grid2">
+          <label>Expiry (month)<input id="sdExp" type="month"></label>
+          <label>Days of treatment<input id="sdDays" type="number" min="1" value="28" inputmode="numeric"></label>
+        </div>
+        <p class="hint">A month-only expiry is taken as the last day of that month.</p>
+        <div id="sdRes" class="result" hidden></div>
+      </div>
+    </section>
+
+    <!-- DIRECTIONS -->
+    <section id="tool-directions" class="panel">
+      <div class="card">
+        <label>Prescription directions<input id="dirIn" placeholder="e.g. 1 tds pc   ·   2 qds prn   ·   ii puffs bd" autocomplete="off" autocapitalize="off"></label>
+        <label>Form
+          <select id="dirForm">
+            <option value="tablet">Tablet</option><option value="capsule">Capsule</option><option value="spoon">5mL spoonful</option>
+            <option value="ml">mL</option><option value="sachet">Sachet</option><option value="puff">Puff (inhaler)</option>
+            <option value="drop">Drop</option><option value="spray">Spray</option><option value="suppository">Suppository</option>
+            <option value="patch">Patch</option><option value="cream">Cream / ointment</option>
+          </select>
+        </label>
+        <div id="dirRes" class="result" hidden></div>
+        <p class="hint">Understands numbers (1, 2, 1-2, half, i, ii), od, bd, tds, qds, om/mane, on/nocte, q4h–q12h, prn, ac, pc, mdu and stat. Always check the result against the prescription.</p>
+      </div>
+    </section>
+
+    <!-- NEAR MISS -->
+    <section id="tool-nearmiss" class="panel">
+      <div class="card">
+        <h2>Log a near miss</h2>
+        <label>Type<select id="nmType"></select></label>
+        <label>Stage
+          <select id="nmStage"><option>Picking</option><option>Labelling</option><option>Assembly</option><option>Final check</option><option>Hand-out</option></select>
+        </label>
+        <label>What happened / learning (optional)<textarea id="nmNote" rows="3" placeholder="e.g. picked 10mg instead of 5mg — stored side by side"></textarea></label>
+        <p class="hint">Do not enter patient details.</p>
+        <div class="actions"><button id="nmAdd" class="btn primary">Add to log</button></div>
+      </div>
+      <div class="card">
+        <div class="row-between"><h2>Summary</h2><select id="nmRange" class="inline-select"><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="0">All time</option></select></div>
+        <div id="nmSummary"></div>
+        <div id="nmList"></div>
+        <div class="actions"><button id="nmExport" class="btn ghost">Export CSV</button><button id="nmClear" class="btn danger">Clear log</button></div>
+      </div>
+    </section>
+
+    <!-- CALC PRACTICE -->
+    <section id="tool-calcs" class="panel">
+      <div class="card">
+        <label>Topic<select id="cqType"><option value="mixed">Mixed — all topics</option></select></label>
+        <div class="scorebar"><span id="cqScore">Score 0 / 0</span><span id="cqStreak"></span></div>
+        <div id="cqQ" class="question"></div>
+        <div class="answer-row">
+          <input id="cqA" type="number" step="any" inputmode="decimal" placeholder="Your answer">
+          <span id="cqUnit" class="unit"></span>
+        </div>
+        <div class="actions"><button id="cqCheck" class="btn primary">Check</button><button id="cqNext" class="btn ghost">Next question</button><button id="cqReveal" class="btn">Show working</button></div>
+        <div id="cqFeedback" class="result" hidden></div>
+        <p class="hint">Answers within 1% are accepted. Questions are generated, so you won’t run out.</p>
+      </div>
+    </section>
+
+    <!-- FLASHCARDS -->
+    <section id="tool-flashcards" class="panel">
+      <div class="card">
+        <div class="chips" id="fcCats"></div>
+        <div id="fcCard" class="flashcard" role="button" tabindex="0" aria-live="polite"></div>
+        <div class="fc-count" id="fcCount"></div>
+        <div class="actions fc-actions">
+          <button id="fcPrev" class="btn">‹ Prev</button>
+          <button id="fcAgain" class="btn danger">Again</button>
+          <button id="fcGot" class="btn primary">Got it</button>
+          <button id="fcNext" class="btn">Next ›</button>
+        </div>
+        <div class="actions"><button id="fcShuffle" class="btn ghost small">Shuffle</button><button id="fcReset" class="btn ghost small">Reset progress</button></div>
+        <p class="hint">Tap the card to flip it. Law changes — check everything against the current MEP and BNF.</p>
       </div>
     </section>
 

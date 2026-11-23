@@ -281,6 +281,140 @@
   const percentToMgMl = (pct) => round2(pct * 10);
   const ratioToMgMl = (n) => (n > 0 ? Number((1000 / n).toPrecision(6)) : null);
 
-  const api = { qtyForDays, daysFromQty, packsNeeded, liquidDose, weightDose, bodyWeights, crcl, rxValidity, addMonths, quantityInWords, intToWords, discardDate, changeSchedule, WEEKDAYS, convertUnit, percentToMgMl, ratioToMgMl, numberToWords, predTablets, predTaperSteps, predChart, sulfaSchedule, sulfaDoseText, eyeDropSupply, doseTimes, fmtDate, isoDate, parseDate, addDays, fmtMg };
+  // ---------- Short-dated stock ----------
+  // expiry given as 'YYYY-MM' (use to end of that month) or 'YYYY-MM-DD'
+  function shortDated({ expiry, supplyDays, todayISO }) {
+    if (!expiry || !(supplyDays >= 0)) return null;
+    let exp;
+    if (/^\d{4}-\d{2}$/.test(expiry)) { const [y, m] = expiry.split('-').map(Number); exp = new Date(y, m, 0, 12); }
+    else exp = parseDate(expiry);
+    const today = parseDate(todayISO);
+    const courseEnd = addDays(today, Math.max(0, supplyDays - 1));
+    const daysToExpiry = Math.round((exp - today) / 86400000);
+    let status = 'ok';
+    if (daysToExpiry < 0) status = 'expired';
+    else if (exp < courseEnd) status = 'short';
+    else if (daysToExpiry < 90) status = 'soon';
+    return { status, expiry: fmtDate(exp), courseEnd: fmtDate(courseEnd), daysToExpiry, shortBy: status === 'short' ? Math.round((courseEnd - exp) / 86400000) : 0 };
+  }
+
+  // ---------- Directions translator ----------
+  const FREQ = {
+    od: 'ONCE a day', daily: 'ONCE a day', bd: 'TWICE a day', bid: 'TWICE a day', tds: 'THREE times a day', tid: 'THREE times a day',
+    qds: 'FOUR times a day', qid: 'FOUR times a day', om: 'in the MORNING', mane: 'in the MORNING', on: 'at NIGHT', nocte: 'at NIGHT',
+    q4h: 'every FOUR hours', q6h: 'every SIX hours', q8h: 'every EIGHT hours', q12h: 'every TWELVE hours', qqh: 'every FOUR hours',
+    weekly: 'once a WEEK', stat: 'IMMEDIATELY',
+  };
+  const MODS = {
+    prn: 'when required', ac: 'before food', pc: 'after food', cc: 'with food', mdu: 'as directed', ud: 'as directed',
+    po: '', top: '', pr: '', sl: '', inh: '',
+  };
+  const ROUTE_FORM = { pr: 'suppository', sl: 'tablet', inh: 'puff' };
+  const FORMS = {
+    tablet: ['Take', 'tablet', 'tablets'], capsule: ['Take', 'capsule', 'capsules'], spoon: ['Take', '5mL spoonful', '5mL spoonfuls'],
+    ml: ['Take', 'mL', 'mL'], sachet: ['Take', 'sachet', 'sachets'], puff: ['Inhale', 'puff', 'puffs'], drop: ['Instil', 'drop', 'drops'],
+    spray: ['Use', 'spray', 'sprays'], suppository: ['Insert', 'suppository', 'suppositories'], patch: ['Apply', 'patch', 'patches'],
+    cream: ['Apply', '', ''], unit: ['Inject', 'unit', 'units'],
+  };
+  const ROMAN = { i: 1, ii: 2, iii: 3, iv: 4 };
+  const SUBLINGUAL = 'under the tongue';
+  function expandDirections(text, form = 'tablet') {
+    const tokens = String(text).toLowerCase().replace(/[.,]/g, ' ').split(/\s+/).filter(Boolean);
+    let qty = null, freq = [], mods = [], unknown = [], route = null;
+    for (let t of tokens) {
+      if (qty == null && /^\d+(\.\d+)?$/.test(t)) { qty = parseFloat(t); continue; }
+      if (qty == null && t in ROMAN) { qty = ROMAN[t]; continue; }
+      if (qty == null && (t === 'half' || t === '½')) { qty = 0.5; continue; }
+      if (/^(\d+)-(\d+)$/.test(t) && qty == null) { const [a, b] = t.split('-').map(Number); qty = [a, b]; continue; }
+      if (t in FREQ) { freq.push(FREQ[t]); continue; }
+      if (t in MODS) { if (t in ROUTE_FORM) route = t; if (t === 'sl') mods.push(SUBLINGUAL); else if (MODS[t]) mods.push(MODS[t]); continue; }
+      if (['tab', 'tabs', 'cap', 'caps', 'x'].includes(t)) continue;
+      unknown.push(t);
+    }
+    const f = FORMS[form] || FORMS.tablet;
+    const word = (n) => (n === 0.5 ? 'HALF a' : numberToWords(n));
+    let amount = '';
+    if (Array.isArray(qty)) amount = `${numberToWords(qty[0])} or ${numberToWords(qty[1])} ${f[2]}`;
+    else if (qty != null) amount = `${word(qty)} ${qty > 1 ? f[2] : f[1]}`;
+    else if (form === 'cream') amount = '';
+    const parts = [f[0], amount, ...freq, ...mods].filter(Boolean);
+    let out = parts.join(' ').replace(/\s+/g, ' ').trim();
+    if (form === 'cream' && !amount) out = out.replace(/^Apply/, 'Apply thinly');
+    return { text: out + (out.endsWith('.') ? '' : '.'), unknown, route };
+  }
+
+  // ---------- Calculation practice ----------
+  const pick = (rng, arr) => arr[Math.floor(rng() * arr.length)];
+  const between = (rng, a, b) => a + Math.floor(rng() * (b - a + 1));
+  const CALC_TYPES = {
+    liquid: 'Oral liquid volume', tablets: 'Number of tablets', days: 'Days supply', percent: '% w/v', dilution: 'Dilutions (C1V1)',
+    mgkg: 'mg/kg dosing', infusion: 'Infusion rate (mL/hr)', drip: 'Drip rate (drops/min)', units: 'Unit conversion', ratio: 'Ratio strengths',
+  };
+  function calcQuestion(type, rng = Math.random) {
+    switch (type) {
+      case 'liquid': {
+        const [s, v] = pick(rng, [[125, 5], [250, 5], [100, 5], [200, 5], [40, 5], [50, 5], [120, 5], [10, 1]]);
+        const mlAns = pick(rng, [1, 1.5, 2, 2.5, 3, 4, 5, 7.5, 10]);
+        const dose = round2((s / v) * mlAns);
+        return { type, q: `A prescription asks for ${fmtMg(dose)}mg of a ${s}mg/${v}mL oral suspension. What volume is needed per dose?`, answer: mlAns, unit: 'mL', working: `${fmtMg(dose)}mg ÷ (${s}mg ÷ ${v}mL) = ${fmtMg(dose)} ÷ ${round2(s / v)} = ${mlAns}mL` };
+      }
+      case 'tablets': {
+        const strength = pick(rng, [2.5, 5, 10, 20, 25, 50, 100, 250, 500]);
+        const n = pick(rng, [0.5, 1, 1.5, 2, 3, 4]);
+        const dose = round2(strength * n);
+        return { type, q: `The dose is ${fmtMg(dose)}mg and the tablets available are ${fmtMg(strength)}mg. How many tablets per dose?`, answer: n, unit: 'tablets', working: `${fmtMg(dose)} ÷ ${fmtMg(strength)} = ${n}` };
+      }
+      case 'days': {
+        const per = pick(rng, [1, 2]), times = pick(rng, [1, 2, 3, 4]);
+        const days = pick(rng, [7, 10, 14, 28, 30, 56]);
+        const qty = per * times * days;
+        return { type, q: `A patient is given ${qty} tablets and takes ${numberToWords(per)} ${per > 1 ? 'tablets' : 'tablet'} ${({ 1: 'ONCE', 2: 'TWICE', 3: 'THREE times', 4: 'FOUR times' })[times]} a day. How many days will the supply last?`, answer: days, unit: 'days', working: `${qty} ÷ (${per} × ${times}) = ${qty} ÷ ${per * times} = ${days} days` };
+      }
+      case 'percent': {
+        const pct = pick(rng, [0.1, 0.25, 0.5, 1, 2, 5, 10]);
+        const vol = pick(rng, [10, 20, 50, 100, 200, 500]);
+        const mg = round2(pct * 10 * vol);
+        return { type, q: `How many milligrams of drug are in ${vol}mL of a ${pct}% w/v solution?`, answer: mg, unit: 'mg', working: `${pct}% w/v = ${pct}g in 100mL = ${round2(pct * 10)}mg/mL. ${round2(pct * 10)} × ${vol} = ${mg}mg` };
+      }
+      case 'dilution': {
+        const c1 = pick(rng, [5, 10, 20, 50, 100]);
+        const ratio = pick(rng, [2, 4, 5, 10, 20]);
+        const c2 = round2(c1 / ratio);
+        const v2 = pick(rng, [100, 200, 250, 500, 1000]);
+        const v1 = round2(v2 / ratio);
+        return { type, q: `What volume of a ${c1}% stock solution is needed to make ${v2}mL of a ${c2}% solution?`, answer: v1, unit: 'mL', working: `C1V1 = C2V2 → V1 = (${c2} × ${v2}) ÷ ${c1} = ${v1}mL (then make up to ${v2}mL)` };
+      }
+      case 'mgkg': {
+        const kg = between(rng, 8, 40), mgkg = pick(rng, [5, 7.5, 10, 15, 20]), split = pick(rng, [1, 2, 3, 4]);
+        const daily = round2(kg * mgkg * split);
+        const each = round2(daily / split);
+        return { type, q: `A child weighs ${kg}kg. The dose is ${mgkg}mg/kg ${({ 1: 'ONCE', 2: 'TWICE', 3: 'THREE times', 4: 'FOUR times' })[split]} a day. What is the total daily dose?`, answer: daily, unit: 'mg', working: `${kg} × ${mgkg} = ${each}mg per dose × ${split} = ${daily}mg a day` };
+      }
+      case 'infusion': {
+        const vol = pick(rng, [100, 250, 500, 1000]), hrs = pick(rng, [1, 2, 4, 5, 8, 10]);
+        const rate = round2(vol / hrs);
+        return { type, q: `${vol}mL is to be infused over ${hrs} hour${hrs > 1 ? 's' : ''}. What is the rate in mL/hour?`, answer: rate, unit: 'mL/hr', working: `${vol} ÷ ${hrs} = ${rate}mL/hr` };
+      }
+      case 'drip': {
+        const vol = pick(rng, [500, 1000]), hrs = pick(rng, [4, 5, 8, 10]), dpm = pick(rng, [15, 20]);
+        const ans = round2((vol * dpm) / (hrs * 60));
+        return { type, q: `${vol}mL is to run over ${hrs} hours with a giving set of ${dpm} drops/mL. What is the drip rate in drops/minute? (to 1 decimal place)`, answer: Math.round(ans * 10) / 10, unit: 'drops/min', working: `(${vol} × ${dpm}) ÷ (${hrs} × 60) = ${vol * dpm} ÷ ${hrs * 60} = ${Math.round(ans * 10) / 10}` };
+      }
+      case 'units': {
+        const [v, from, to, f] = pick(rng, [[pick(rng, [0.125, 0.25, 0.5, 1.5]), 'mg', 'mcg', 1000], [pick(rng, [62.5, 125, 250, 500]), 'mcg', 'mg', 0.001], [pick(rng, [0.5, 1.2, 2.5]), 'g', 'mg', 1000], [pick(rng, [1.5, 2.25, 0.75]), 'L', 'mL', 1000]]);
+        const ans = Number((v * f).toPrecision(10));
+        return { type, q: `Convert ${v}${from} into ${to}.`, answer: ans, unit: to, working: `${v} × ${f} = ${ans}${to}` };
+      }
+      case 'ratio': {
+        const n = pick(rng, [1000, 10000, 100000]), vol = pick(rng, [1, 5, 10, 20, 100]);
+        const ans = Number(((1000 / n) * vol).toPrecision(6));
+        return { type, q: `How many milligrams are in ${vol}mL of a 1 in ${n.toLocaleString('en-GB')} solution?`, answer: ans, unit: 'mg', working: `1 in ${n.toLocaleString('en-GB')} = 1g in ${n.toLocaleString('en-GB')}mL = ${Number((1000 / n).toPrecision(6))}mg/mL × ${vol} = ${ans}mg` };
+      }
+    }
+    return null;
+  }
+  const checkAnswer = (given, answer) => Number.isFinite(given) && Math.abs(given - answer) <= Math.max(0.01, Math.abs(answer) * 0.01);
+
+  const api = { shortDated, expandDirections, FORMS, calcQuestion, CALC_TYPES, checkAnswer, qtyForDays, daysFromQty, packsNeeded, liquidDose, weightDose, bodyWeights, crcl, rxValidity, addMonths, quantityInWords, intToWords, discardDate, changeSchedule, WEEKDAYS, convertUnit, percentToMgMl, ratioToMgMl, numberToWords, predTablets, predTaperSteps, predChart, sulfaSchedule, sulfaDoseText, eyeDropSupply, doseTimes, fmtDate, isoDate, parseDate, addDays, fmtMg };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.RxLogic = api;
 })(typeof window !== 'undefined' ? window : globalThis);

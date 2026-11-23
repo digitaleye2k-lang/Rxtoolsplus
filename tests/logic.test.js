@@ -127,3 +127,35 @@ test('unit conversions', () => {
   assert.equal(L.percentToMgMl(0.5), 5);
   assert.equal(L.ratioToMgMl(1000), 1);
 });
+
+test('short-dated check', () => {
+  assert.equal(L.shortDated({ expiry: '2026-12', supplyDays: 28, todayISO: '2026-11-23' }).status, 'soon');
+  const s = L.shortDated({ expiry: '2026-12', supplyDays: 56, todayISO: '2026-11-23' });
+  assert.equal(s.status, 'short'); assert.equal(s.expiry, '31/12/2026');
+  assert.equal(L.shortDated({ expiry: '2026-10', supplyDays: 7, todayISO: '2026-11-23' }).status, 'expired');
+  assert.equal(L.shortDated({ expiry: '2028-01', supplyDays: 28, todayISO: '2026-11-23' }).status, 'ok');
+});
+
+test('directions translator', () => {
+  assert.equal(L.expandDirections('1 tds').text, 'Take ONE tablet THREE times a day.');
+  assert.equal(L.expandDirections('2 bd pc', 'capsule').text, 'Take TWO capsules TWICE a day after food.');
+  assert.equal(L.expandDirections('1-2 qds prn').text, 'Take ONE or TWO tablets FOUR times a day when required.');
+  assert.equal(L.expandDirections('ii puffs bd', 'puff').text, 'Inhale TWO puffs TWICE a day.');
+  assert.equal(L.expandDirections('half om').text, 'Take HALF a tablet in the MORNING.');
+  assert.equal(L.expandDirections('1 on', 'drop').text, 'Instil ONE drop at NIGHT.');
+  assert.deepEqual(L.expandDirections('1 tds foo').unknown, ['foo']);
+});
+
+test('calculation questions: worked answers are self-consistent', () => {
+  let seed = 1; const rng = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+  for (const type of Object.keys(L.CALC_TYPES)) {
+    for (let i = 0; i < 200; i++) {
+      const q = L.calcQuestion(type, rng);
+      assert.ok(q && Number.isFinite(q.answer) && q.answer > 0, type);
+      assert.ok(q.working.includes(String(q.answer)), `${type}: ${q.working} / ${q.answer}`);
+      assert.ok(L.checkAnswer(q.answer, q.answer));
+    }
+  }
+  // spot checks
+  assert.ok(L.checkAnswer(2.5, 2.5)); assert.ok(!L.checkAnswer(2.6, 2.5)); assert.ok(L.checkAnswer(33.3, 33.33));
+});

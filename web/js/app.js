@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   const L = window.RxLogic;
-  const APP_VERSION = '1.1.0';
+  const APP_VERSION = '1.2.0';
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const today = () => L.isoDate(new Date());
@@ -51,17 +51,24 @@
     { id: 'liquid', icon: '🧪', title: 'Liquid dose', desc: 'mg to mL, total volume and bottles', group: 'Dispensing', roles: 'PT' },
     { id: 'discard', icon: '📅', title: 'Discard date', desc: 'In-use expiry after opening or reconstituting', group: 'Dispensing', roles: 'PTA' },
     { id: 'owing', icon: '🧾', title: 'Owing slip', desc: 'Print an owing note for patient and pharmacy', group: 'Dispensing', roles: 'PTA' },
-    { id: 'validity', icon: '✅', title: 'Prescription validity', desc: 'CD 28-day and 6-month expiry check', group: 'Checks', roles: 'PTA' },
-    { id: 'words', icon: '✍', title: 'Quantity in words', desc: 'Figures to words for CD prescriptions', group: 'Checks', roles: 'PTA' },
-    { id: 'weight', icon: '⚖', title: 'Weight-based dose', desc: 'mg/kg dose with maximum cap', group: 'Clinical', roles: 'PT' },
-    { id: 'renal', icon: '🫘', title: 'Creatinine clearance', desc: 'Cockcroft–Gault with IBW, AdjBW and BMI', group: 'Clinical', roles: 'P' },
-    { id: 'convert', icon: '🔁', title: 'Units & strengths', desc: 'mg/mcg/g, mL/L, % w/v and 1 in N', group: 'Clinical', roles: 'PT' },
+    { id: 'validity', icon: '✅', title: 'Prescription validity', desc: 'CD 28-day and 6-month expiry check', group: 'Checking', roles: 'PTAS' },
+    { id: 'words', icon: '✍', title: 'Quantity in words', desc: 'Figures to words for CD prescriptions', group: 'Checking', roles: 'PTA' },
+    { id: 'weight', icon: '⚖', title: 'Weight-based dose', desc: 'mg/kg dose with maximum cap', group: 'Clinical', roles: 'PTS' },
+    { id: 'renal', icon: '🫘', title: 'Creatinine clearance', desc: 'Cockcroft–Gault with IBW, AdjBW and BMI', group: 'Clinical', roles: 'PS' },
+    { id: 'convert', icon: '🔁', title: 'Units & strengths', desc: 'mg/mcg/g, mL/L, % w/v and 1 in N', group: 'Clinical', roles: 'PTS' },
     { id: 'pred', icon: '📉', title: 'Prednisolone chart', desc: 'Reducing dose chart with tablet breakdown', group: 'Charts', roles: 'PT' },
     { id: 'sulfa', icon: '📈', title: 'Sulfasalazine chart', desc: '500mg titration chart', group: 'Charts', roles: 'PT' },
     { id: 'eye', icon: '👁', title: 'Eye drops', desc: 'Bottle supply and printable drop chart', group: 'Charts', roles: 'PTA' },
     { id: 'schedule', icon: '🩹', title: 'Patch & change days', desc: 'List of patch or injection change dates', group: 'Charts', roles: 'PTA' },
+    { id: 'checklist', icon: '☑', title: 'Checking checklists', desc: 'Final accuracy check, POM and CD prescription requirements', group: 'Checking', roles: 'PTS' },
+    { id: 'lasa', icon: '⚠', title: 'Look-alike sound-alike', desc: 'Commonly confused drug names', group: 'Checking', roles: 'PTAS' },
+    { id: 'shortdated', icon: '⏳', title: 'Short-dated check', desc: 'Will the stock last the whole course?', group: 'Checking', roles: 'PTA' },
+    { id: 'directions', icon: '💬', title: 'Directions translator', desc: 'Turn “1 tds pc” into label wording', group: 'Checking', roles: 'PTAS' },
+    { id: 'nearmiss', icon: '📝', title: 'Near-miss log', desc: 'Record and review near misses on this device', group: 'Checking', roles: 'PTA' },
+    { id: 'calcs', icon: '🧮', title: 'Calculations practice', desc: 'Unlimited questions with worked answers', group: 'Study', roles: 'PTS' },
+    { id: 'flashcards', icon: '🗂', title: 'Revision flashcards', desc: 'Law, abbreviations, formulae and checking', group: 'Study', roles: 'PTS' },
   ];
-  const GROUPS = ['Dispensing', 'Checks', 'Clinical', 'Charts'];
+  const GROUPS = ['Dispensing', 'Checking', 'Clinical', 'Charts', 'Study'];
   let roleFilter = store.get('role', 'all');
   let currentTool = 'home';
 
@@ -531,6 +538,151 @@
       </tbody></table><p>Please bring this note when you collect.</p>${footerHTML()}</div>`;
     printHTML(slip('Patient') + '<div class="cut">✂ - - - - - - - - - - - - - - - - - - - - - - - - - -</div>' + slip('Pharmacy'), 'Owing note');
   });
+
+  // ---------- Checklists ----------
+  let clMode = 'accuracy';
+  const clDone = new Set();
+  function renderChecklist() {
+    const list = window.RX_CHECKLISTS[clMode];
+    $('clItems').innerHTML = list.items.map((t, i) => `<button class="ck ${clDone.has(i) ? 'done' : ''}" data-i="${i}"><span class="box">${clDone.has(i) ? '✓' : ''}</span><span>${esc(t)}</span></button>`).join('');
+    $('clItems').querySelectorAll('.ck').forEach((b) => b.addEventListener('click', () => { const i = +b.dataset.i; if (clDone.has(i)) clDone.delete(i); else clDone.add(i); renderChecklist(); }));
+    const pct = Math.round((clDone.size / list.items.length) * 100);
+    $('clProgress').firstElementChild.style.width = pct + '%';
+    $('clProgress').classList.toggle('complete', pct === 100);
+    if (pct === 100) toast('All checks complete');
+  }
+  seg('clMode', (d) => { clMode = d.m; clDone.clear(); renderChecklist(); });
+  $('clReset').addEventListener('click', () => { clDone.clear(); renderChecklist(); window.scrollTo(0, 0); });
+  renderChecklist();
+
+  // ---------- LASA ----------
+  function renderLasa() {
+    const q = $('lasaSearch').value.trim().toLowerCase();
+    const items = window.RX_LASA.filter((x) => !q || (x.a + ' ' + x.b).toLowerCase().includes(q));
+    $('lasaList').innerHTML = items.length ? items.map((x) => `<div class="lasa-row"><div class="pair"><b>${esc(x.a)}</b><span>↔</span><b>${esc(x.b)}</b></div><small>${esc(x.tip)}</small></div>`).join('') : '<p class="hint">No pairs listed for that drug — that does not mean there is no risk.</p>';
+  }
+  $('lasaSearch').addEventListener('input', renderLasa);
+  renderLasa();
+
+  // ---------- Short dated ----------
+  function calcShortDated() {
+    const r = L.shortDated({ expiry: $('sdExp').value, supplyDays: num('sdDays'), todayISO: today() });
+    if (!r) return show('sdRes', '');
+    const msg = {
+      expired: `<p class="bad-text">❌ Expired ${-r.daysToExpiry} day${r.daysToExpiry === -1 ? '' : 's'} ago — do not supply.</p>`,
+      short: `<p class="bad-text">⚠ Expires ${r.shortBy} day${r.shortBy === 1 ? '' : 's'} before the course ends (${r.courseEnd}). Use longer-dated stock.</p>`,
+      soon: `<p class="ok-text">✓ Lasts the course.</p><p class="hint">Expires within 3 months — rotate stock.</p>`,
+      ok: '<p class="ok-text">✓ Lasts the course.</p>',
+    }[r.status];
+    show('sdRes', `<p>Use until</p><div class="big">${r.expiry}</div>${msg}`);
+  }
+  ['sdExp', 'sdDays'].forEach((id) => $(id).addEventListener('input', calcShortDated));
+
+  // ---------- Directions ----------
+  function calcDirections() {
+    const v = $('dirIn').value.trim();
+    if (!v) return show('dirRes', '');
+    const r = L.expandDirections(v, $('dirForm').value);
+    show('dirRes', `<div class="big words">${esc(r.text)}</div>${r.unknown.length ? `<p class="warn">Not recognised: ${esc(r.unknown.join(', '))} — add these by hand.</p>` : ''}<div class="actions"><button class="btn small" id="dirCopy">Copy</button></div>`);
+    $('dirCopy').addEventListener('click', () => copyText(r.text));
+  }
+  ['dirIn', 'dirForm'].forEach((id) => $(id).addEventListener('input', calcDirections));
+
+  // ---------- Near-miss log ----------
+  $('nmType').innerHTML = window.RX_NEARMISS_TYPES.map((t) => `<option>${esc(t)}</option>`).join('');
+  const nmLog = () => store.get('nearmiss', []);
+  function renderNearMiss() {
+    const days = +$('nmRange').value;
+    const since = days ? Date.now() - days * 86400000 : 0;
+    const items = nmLog().filter((x) => x.t >= since);
+    const counts = {};
+    items.forEach((x) => { counts[x.type] = (counts[x.type] || 0) + 1; });
+    const max = Math.max(1, ...Object.values(counts));
+    $('nmSummary').innerHTML = items.length
+      ? `<p><b>${items.length}</b> near miss${items.length === 1 ? '' : 'es'}</p>` + Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<div class="bar-row"><span>${esc(k)}</span><div class="bar"><div style="width:${(v / max) * 100}%"></div></div><b>${v}</b></div>`).join('')
+      : '<p class="hint">Nothing logged in this period.</p>';
+    $('nmList').innerHTML = items.slice().reverse().slice(0, 20).map((x) => `<div class="nm-row"><div><b>${esc(x.type)}</b> · ${esc(x.stage)}<small>${new Date(x.t).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}</small></div>${x.note ? `<p>${esc(x.note)}</p>` : ''}</div>`).join('');
+  }
+  $('nmAdd').addEventListener('click', () => {
+    const log = nmLog();
+    log.push({ t: Date.now(), type: $('nmType').value, stage: $('nmStage').value, note: $('nmNote').value.trim().slice(0, 500) });
+    store.set('nearmiss', log); $('nmNote').value = ''; renderNearMiss(); toast('Logged');
+  });
+  $('nmRange').addEventListener('change', renderNearMiss);
+  $('nmClear').addEventListener('click', () => { if (confirm('Delete every near miss on this device? This cannot be undone.')) { store.set('nearmiss', []); renderNearMiss(); } });
+  $('nmExport').addEventListener('click', () => {
+    const q = (v) => `"${String(v).replace(/"/g, '""')}"`;
+    const csv = 'Date,Time,Type,Stage,Note\n' + nmLog().map((x) => { const d = new Date(x.t); return [d.toLocaleDateString('en-GB'), d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }), x.type, x.stage, x.note].map(q).join(','); }).join('\n');
+    if (window.AndroidBridge && AndroidBridge.saveFile) { AndroidBridge.saveFile('near-miss-log.csv', csv); return; }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'near-miss-log.csv'; a.click(); URL.revokeObjectURL(a.href);
+  });
+  renderNearMiss();
+
+  // ---------- Calculations practice ----------
+  $('cqType').innerHTML += Object.entries(L.CALC_TYPES).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join('');
+  let cq = null, cqAnswered = false;
+  const cqStats = store.get('calcStats', { right: 0, total: 0, streak: 0, best: 0 });
+  function renderScore() {
+    $('cqScore').textContent = `Score ${cqStats.right} / ${cqStats.total}`;
+    $('cqStreak').textContent = cqStats.streak > 1 ? `🔥 ${cqStats.streak} in a row (best ${cqStats.best})` : cqStats.best ? `Best streak ${cqStats.best}` : '';
+  }
+  function nextQuestion() {
+    const t = $('cqType').value === 'mixed' ? Object.keys(L.CALC_TYPES)[Math.floor(Math.random() * Object.keys(L.CALC_TYPES).length)] : $('cqType').value;
+    cq = L.calcQuestion(t); cqAnswered = false;
+    $('cqQ').innerHTML = `<small>${esc(L.CALC_TYPES[t])}</small><p>${esc(cq.q)}</p>`;
+    $('cqUnit').textContent = cq.unit; $('cqA').value = ''; show('cqFeedback', '');
+  }
+  $('cqCheck').addEventListener('click', () => {
+    const given = parseFloat($('cqA').value);
+    if (!Number.isFinite(given)) { toast('Enter an answer'); return; }
+    const ok = L.checkAnswer(given, cq.answer);
+    if (!cqAnswered) {
+      cqStats.total++; if (ok) { cqStats.right++; cqStats.streak++; cqStats.best = Math.max(cqStats.best, cqStats.streak); } else cqStats.streak = 0;
+      store.set('calcStats', cqStats); renderScore(); cqAnswered = true;
+    }
+    show('cqFeedback', ok ? `<p class="ok-text">✓ Correct — ${cq.answer} ${esc(cq.unit)}</p><p class="hint">${esc(cq.working)}</p>` : `<p class="bad-text">✗ Not quite. Answer: ${cq.answer} ${esc(cq.unit)}</p><p>${esc(cq.working)}</p>`);
+  });
+  $('cqA').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('cqCheck').click(); });
+  $('cqReveal').addEventListener('click', () => { if (!cqAnswered) { cqStats.total++; cqStats.streak = 0; store.set('calcStats', cqStats); renderScore(); cqAnswered = true; } show('cqFeedback', `<p>Answer: <b>${cq.answer} ${esc(cq.unit)}</b></p><p>${esc(cq.working)}</p>`); });
+  $('cqNext').addEventListener('click', nextQuestion);
+  $('cqType').addEventListener('change', nextQuestion);
+  renderScore(); nextQuestion();
+
+  // ---------- Flashcards ----------
+  const FC = window.RX_FLASHCARDS.map((c, i) => ({ ...c, id: i }));
+  const fcCats = ['All', ...new Set(FC.map((c) => c.cat))];
+  let fcCat = 'All', fcDeck = [], fcIdx = 0, fcFlipped = false;
+  const fcKnown = new Set(store.get('fcKnown', []));
+  $('fcCats').innerHTML = fcCats.map((c) => `<button data-c="${esc(c)}" class="${c === 'All' ? 'active' : ''}">${esc(c)}</button>`).join('');
+  $('fcCats').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
+    fcCat = b.dataset.c; $('fcCats').querySelectorAll('button').forEach((x) => x.classList.toggle('active', x === b)); buildDeck(false);
+  }));
+  function buildDeck(shuffle) {
+    fcDeck = FC.filter((c) => fcCat === 'All' || c.cat === fcCat);
+    // unknown cards first
+    fcDeck.sort((a, b) => fcKnown.has(a.id) - fcKnown.has(b.id));
+    if (shuffle) for (let i = fcDeck.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [fcDeck[i], fcDeck[j]] = [fcDeck[j], fcDeck[i]]; }
+    fcIdx = 0; renderCard();
+  }
+  function renderCard() {
+    const c = fcDeck[fcIdx]; fcFlipped = false;
+    if (!c) { $('fcCard').innerHTML = '<p>No cards.</p>'; return; }
+    $('fcCard').className = 'flashcard';
+    $('fcCard').innerHTML = `<small>${esc(c.cat)}${fcKnown.has(c.id) ? ' · ✓ known' : ''}</small><div class="fc-q">${esc(c.q)}</div><div class="fc-a">${esc(c.a)}</div><span class="fc-hint">Tap to reveal</span>`;
+    const known = fcDeck.filter((x) => fcKnown.has(x.id)).length;
+    $('fcCount').textContent = `Card ${fcIdx + 1} of ${fcDeck.length} · ${known} known`;
+  }
+  const flip = () => { fcFlipped = !fcFlipped; $('fcCard').classList.toggle('flipped', fcFlipped); };
+  $('fcCard').addEventListener('click', flip);
+  $('fcCard').addEventListener('keydown', (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); flip(); } });
+  const step = (d) => { fcIdx = (fcIdx + d + fcDeck.length) % fcDeck.length; renderCard(); };
+  $('fcNext').addEventListener('click', () => step(1));
+  $('fcPrev').addEventListener('click', () => step(-1));
+  $('fcGot').addEventListener('click', () => { fcKnown.add(fcDeck[fcIdx].id); store.set('fcKnown', [...fcKnown]); step(1); });
+  $('fcAgain').addEventListener('click', () => { fcKnown.delete(fcDeck[fcIdx].id); store.set('fcKnown', [...fcKnown]); step(1); });
+  $('fcShuffle').addEventListener('click', () => buildDeck(true));
+  $('fcReset').addEventListener('click', () => { fcKnown.clear(); store.set('fcKnown', []); buildDeck(false); });
+  buildDeck(false);
 
   // ---------- Start ----------
   const startTool = location.hash.slice(1);

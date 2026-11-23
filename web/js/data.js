@@ -57,3 +57,123 @@ window.RX_MEDICATIONS = [
   { name: "RILPIVIRINE 900MG SUSPENSION FOR INJECTION", instruction: "Inject 3ml (900 mg) by INTRAMUSCULAR injection to RIGHT buttock as a single dose as directed" },
   { name: "LOPERAMIDE", instruction: "If required for diarrhoea, take TWO capsules (4mg) initially, then ONE capsule (2mg) after each loose stool. Maximum 16mg in 24 hours, as directed" }
 ];
+
+/* ---------- Checking ---------- */
+window.RX_CHECKLISTS = {
+  accuracy: {
+    title: 'Final accuracy check',
+    items: [
+      'Label is for the same patient as the prescription and the bag',
+      'Drug name matches the prescription',
+      'Strength matches',
+      'Formulation matches (e.g. tablet vs capsule, standard vs MR, liquid strength)',
+      'Quantity is correct — packs checked, split packs counted',
+      'Directions on the label match the prescription',
+      'Correct cautionary and advisory labels added',
+      'Expiry checked — stock will not expire before the course ends',
+      'Packs intact; split packs show drug, strength, batch and expiry',
+      'Look-alike / sound-alike drugs double-checked',
+      'Fridge and CD items flagged and bagged separately',
+      'Clinical check completed by a pharmacist',
+      'Dispensed-by and checked-by initials on the label / bag',
+    ],
+  },
+  pom: {
+    title: 'POM prescription — legal requirements',
+    items: [
+      'Signed in ink by an appropriate prescriber (or advanced electronic signature on EPS)',
+      'Dated',
+      'Prescriber’s address',
+      'Indicates the type of prescriber (e.g. doctor, dentist, nurse independent prescriber)',
+      'Patient’s name and address',
+      'Patient’s age if under 12',
+      'Within its validity period (6 months for POM / Schedule 5)',
+    ],
+  },
+  cd23: {
+    title: 'Schedule 2 & 3 CD — extra requirements',
+    items: [
+      'All POM requirements present',
+      'Dose',
+      'Formulation',
+      'Strength (where more than one is available)',
+      'Total quantity in BOTH words and figures (or number of dosage units)',
+      'Prescriber’s address is in the UK',
+      '“For dental treatment only” if written by a dentist',
+      'Within 28 days of the appropriate date',
+      'Private prescriptions in England: on the standard private CD form (FP10PCD) with the prescriber identification number',
+      'Instalment prescriptions: amount per instalment and interval stated',
+    ],
+  },
+};
+
+window.RX_NEARMISS_TYPES = ['Wrong drug', 'Wrong strength', 'Wrong formulation', 'Wrong quantity', 'Wrong directions / label', 'Wrong patient label', 'Out of date / short dated', 'Item missed', 'Look-alike / sound-alike', 'Other'];
+
+// Commonly reported look-alike / sound-alike (LASA) pairs. Not exhaustive — follow your pharmacy's own LASA list.
+window.RX_LASA = [
+  { a: 'Amlodipine', b: 'Amitriptyline', tip: 'Both common tablets in similar strengths — check the full name.' },
+  { a: 'Carbamazepine', b: 'Carbimazole', tip: 'Anticonvulsant vs antithyroid.' },
+  { a: 'Propranolol', b: 'Prednisolone', tip: 'Beta-blocker vs steroid; similar first letters and strengths.' },
+  { a: 'Chlorpromazine', b: 'Chlorphenamine', tip: 'Antipsychotic vs antihistamine.' },
+  { a: 'Hydralazine', b: 'Hydroxyzine', tip: 'Antihypertensive vs antihistamine.' },
+  { a: 'Hydroxyzine', b: 'Hydroxychloroquine', tip: 'Antihistamine vs DMARD / antimalarial.' },
+  { a: 'Sulfasalazine', b: 'Sulfadiazine', tip: 'DMARD vs antibacterial.' },
+  { a: 'Quinine', b: 'Quetiapine', tip: 'Cramps vs antipsychotic.' },
+  { a: 'Risperidone', b: 'Ropinirole', tip: 'Antipsychotic vs dopamine agonist.' },
+  { a: 'Tramadol', b: 'Trazodone', tip: 'Opioid (CD) vs antidepressant.' },
+  { a: 'Azathioprine', b: 'Azithromycin', tip: 'Immunosuppressant vs antibiotic.' },
+  { a: 'Clobazam', b: 'Clonazepam', tip: 'Two benzodiazepines with different doses and uses.' },
+  { a: 'Lamotrigine', b: 'Levetiracetam', tip: 'Both antiepileptics.' },
+  { a: 'Lamotrigine', b: 'Lamivudine', tip: 'Antiepileptic vs antiviral.' },
+  { a: 'Losec', b: 'Lasix', tip: 'Brand names: omeprazole vs furosemide.' },
+  { a: 'Methotrexate 2.5mg', b: 'Methotrexate 10mg', tip: 'Strength confusion; usually a WEEKLY dose — check the day.' },
+  { a: 'Morphine immediate-release', b: 'Morphine modified-release', tip: 'Formulation confusion, e.g. oral solution vs MR tablets.' },
+  { a: 'Zuclopenthixol acetate', b: 'Zuclopenthixol decanoate', tip: 'Short-acting vs depot injection.' },
+];
+
+/* ---------- Study: flashcards ---------- */
+window.RX_FLASHCARDS = [
+  // Law & ethics
+  { cat: 'Law', q: 'How long is a Schedule 2, 3 or 4 CD prescription valid for?', a: '28 days from the appropriate date (the date signed, or a later start date set by the prescriber).' },
+  { cat: 'Law', q: 'How long is a POM or Schedule 5 CD prescription valid for?', a: '6 months from the appropriate date.' },
+  { cat: 'Law', q: 'What is the recommended maximum quantity for Schedule 2, 3 and 4 CDs?', a: 'Up to 30 days’ treatment — a strong DHSC recommendation, not a legal limit. Pharmacists can dispense more.' },
+  { cat: 'Law', q: 'What extra details must a Schedule 2 or 3 CD prescription include?', a: 'Dose, formulation, strength (if more than one), and the total quantity in both words and figures.' },
+  { cat: 'Law', q: 'By when must an owing of a Schedule 2, 3 or 4 CD be supplied?', a: 'Within 28 days of the appropriate date on the prescription.' },
+  { cat: 'Law', q: 'What is the maximum treatment period on an FP10MDA instalment prescription?', a: '14 days.' },
+  { cat: 'Law', q: 'When must a patient’s age appear on a POM prescription?', a: 'When the patient is under 12.' },
+  { cat: 'Law', q: 'How long must CD register entries be kept?', a: '2 years from the date of the last entry.' },
+  { cat: 'Law', q: 'How long must POM register (private prescription and emergency supply) records be kept?', a: '2 years from the date of the last entry.' },
+  { cat: 'Law', q: 'How long must the responsible pharmacist record be kept?', a: '5 years.' },
+  { cat: 'Law', q: 'How long can the responsible pharmacist be absent during the pharmacy’s business hours?', a: 'Up to 2 hours in total, and they must stay contactable.' },
+  { cat: 'Law', q: 'How long must records for unlicensed medicines (specials) be kept?', a: '5 years.' },
+  { cat: 'Law', q: 'Emergency supply at patient request: which CDs cannot be supplied?', a: 'Schedule 1, 2 and 3 CDs — except phenobarbital for epilepsy.' },
+  { cat: 'Law', q: 'Emergency supply at patient request: maximum quantity for Schedule 4 or 5 CDs (and phenobarbital)?', a: '5 days’ supply.' },
+  { cat: 'Law', q: 'Emergency supply at patient request: maximum quantity for most other POMs?', a: '30 days’ supply. Exceptions: the smallest pack for items like inhalers, creams and insulin, and a full cycle for oral contraceptives.' },
+  { cat: 'Law', q: 'What must the label say on an emergency supply?', a: '“Emergency supply”, as well as the normal labelling requirements. An entry also goes in the POM register.' },
+  { cat: 'Law', q: 'Which form must private Schedule 2 and 3 CD prescriptions be written on in England?', a: 'The standard private CD prescription form, FP10PCD, with the prescriber identification number.' },
+  // Abbreviations
+  { cat: 'Abbreviations', q: 'od', a: 'Once a day (omni die)' },
+  { cat: 'Abbreviations', q: 'bd', a: 'Twice a day (bis die)' },
+  { cat: 'Abbreviations', q: 'tds', a: 'Three times a day (ter die sumendum)' },
+  { cat: 'Abbreviations', q: 'qds', a: 'Four times a day (quater die sumendum)' },
+  { cat: 'Abbreviations', q: 'prn', a: 'When required (pro re nata)' },
+  { cat: 'Abbreviations', q: 'mane / om', a: 'In the morning' },
+  { cat: 'Abbreviations', q: 'nocte / on', a: 'At night' },
+  { cat: 'Abbreviations', q: 'ac', a: 'Before food (ante cibum)' },
+  { cat: 'Abbreviations', q: 'pc', a: 'After food (post cibum)' },
+  { cat: 'Abbreviations', q: 'stat', a: 'Immediately' },
+  { cat: 'Abbreviations', q: 'mdu', a: 'As directed (more dicto utendus)' },
+  { cat: 'Abbreviations', q: 'po / pr / sl / top', a: 'By mouth / rectally / under the tongue / topically' },
+  { cat: 'Abbreviations', q: 'q4h', a: 'Every 4 hours' },
+  // Formulae
+  { cat: 'Formulae', q: 'What does 1% w/v mean?', a: '1g in 100mL = 10mg/mL.' },
+  { cat: 'Formulae', q: 'What does “1 in 1,000” mean?', a: '1g in 1,000mL = 1mg/mL.' },
+  { cat: 'Formulae', q: 'Dilution formula', a: 'C1 × V1 = C2 × V2' },
+  { cat: 'Formulae', q: 'Drip rate (drops/min)', a: '(Volume in mL × drops per mL) ÷ time in minutes' },
+  { cat: 'Formulae', q: 'Volume of liquid per dose', a: 'Dose required ÷ concentration (mg/mL)' },
+  { cat: 'Formulae', q: 'Cockcroft–Gault (SCr in µmol/L)', a: '(140 − age) × weight (kg) × 1.23 for males or 1.04 for females, ÷ serum creatinine' },
+  { cat: 'Formulae', q: 'mg ↔ mcg ↔ ng', a: '1mg = 1,000mcg; 1mcg = 1,000ng' },
+  // Checking
+  { cat: 'Checking', q: 'Name five things to check at the final accuracy check.', a: 'Any five of: patient, drug, strength, formulation, quantity, directions, cautionary labels, expiry, pack integrity, LASA risks.' },
+  { cat: 'Checking', q: 'Why is methotrexate a high-risk item?', a: 'Usually a once-WEEKLY dose, and the 2.5mg and 10mg tablets can be confused. Check the day, strength and directions.' },
+];
